@@ -89,6 +89,26 @@ Proof.
   unfold get, memle. intros. auto.
 Qed.
 
+(* Added Properties *)
+
+Lemma memle_preserves_freeFrom : forall {T} (m m' : Mem T) r, freeFrom r m' -> m ⊑ m' -> freeFrom r m.
+Proof.
+  unfold freeFrom.
+  unfold memle.
+  intros T m m' r H H0 r' H1.
+  specialize (H r' H1).
+  specialize (H0 r').
+  clear H1.
+  rewrite H in H0.
+  clear H.
+  destruct (m r').
+
+  specialize (H0 t eq_refl).
+  discriminate.
+
+  trivial.
+Qed.
+
 
 (* Additional axiom *)
 

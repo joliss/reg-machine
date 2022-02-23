@@ -57,8 +57,11 @@ Axiom set_monotone : forall {T} (m m' : Mem T) r v, m ⊑ m' -> set r v m ⊑ se
 
 Axiom memle_get : forall {T} (m m' : Mem T) r v, m ⊑ m' -> get r m = Some v -> get r m' = Some v.
 
+(* Added Properties *)
 
-Hint Resolve memle_set memle_get memle_refl set_monotone memle_trans freeFrom_set empty_mem_free : memory.
+Axiom memle_preserves_freeFrom : forall {T} (m m' : Mem T) r, freeFrom r m' -> m ⊑ m' -> freeFrom r m.
+
+Hint Resolve memle_set memle_get memle_refl set_monotone memle_trans freeFrom_set empty_mem_free memle_preserves_freeFrom : memory.
 End Memory.
 
 
