@@ -76,12 +76,12 @@ Qed.
 
 (* Property 6 *)
 
-Lemma set_monotone : forall {T} (s t : Mem T) r v, s ⊑ t -> set r v s ⊑ set r v t .
+(* Lemma set_monotone : forall {T} (s t : Mem T) r v, s ⊑ t -> set r v s ⊑ set r v t . *)
+Lemma set_monotone : forall {T} (m m' : Mem T) r v, freeFrom r m -> m ⊑ m' -> set r v m ⊑ set r v m'.
 Proof.
   unfold set, memle. intros. destruct (r0 =? r); eauto.
-Qed.
+Qed.  
   
-
 (* Property 7 *)
 
 Lemma memle_get : forall {T} (s t : Mem T) r v, s ⊑ t -> get r s = Some v -> get r t = Some v.

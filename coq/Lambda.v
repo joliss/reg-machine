@@ -8,6 +8,8 @@ Require Import Coq.Program.Equality.
 Module Lambda (Import mem : Memory).
 
 
+Set Diffs "on".
+  
 (** * Syntax *)
 
 Inductive Expr : Set := 
@@ -107,9 +109,9 @@ Inductive VM : Conf -> Conf -> Prop :=
     ⟨LOAD n c, a, e, s, m⟩         ==> ⟨c, Num' n, e, s, m⟩
 | vm_add c a n r m e s : m[r] = NUM n ->
     ⟨ADD r c, Num' a, e, s, m⟩     ==> ⟨c, Num'(n + a), e, s, m⟩
-| vm_store c n r m e s :
+| vm_store c n r m e s : freeFrom r m ->
     ⟨STORE r c, Num' n, e, s, m⟩   ==> ⟨c, Num' n, e, s, m[r:=NUM n]⟩
-| vm_stc c c' e' r m e s :
+| vm_stc c c' e' r m e s : freeFrom r m ->
     ⟨STC r c, Clo' c' e', e, s, m⟩ ==> ⟨c, Clo' c' e', e, s, m[r:=CLO c' e']⟩
 | vm_lookup e i c v a m s : nth e i = Some v ->
     ⟨LOOKUP i c, a, e, s, m⟩       ==> ⟨c, v, e, s, m⟩
@@ -172,9 +174,29 @@ Definition Conf := Conf.
 Definition Pre := cle.
 Definition Rel := VM.
 Lemma monotone : monotonicity cle VM.
-  prove_monotonicity1;
-    try (match goal with [H : stackle (_ :: _) _ |- _] => inversion H end)
-    ; prove_monotonicity2.
+  prove_monotonicity1.
+
+  all: try (match goal with [H : stackle (_ :: _) _ |- _] => inversion H end).
+
+  all: eexists.
+  all: split.
+
+  econstructor; eauto with memory.
+  eauto with memory.
+  
+  econstructor; eauto with memory.
+  eauto with memory.
+  
+  econstructor; eauto with memory.
+  eauto with memory.
+  (* It seems like monotocity is just not true here? *)
+  
+  (* all: split; [try solve [econstructor; eauto with memory]| eauto with memory]. *)
+
+  Show.
+
+  
+  
 Qed.
 Lemma preorder : is_preorder cle.
 prove_preorder. Qed.

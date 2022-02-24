@@ -51,7 +51,8 @@ Axiom memle_trans : forall {T} (m m' u : Mem T), m ⊑ m' -> m' ⊑ u -> m ⊑ u
 
 (* Property 6 *)
 
-Axiom set_monotone : forall {T} (m m' : Mem T) r v, m ⊑ m' -> set r v m ⊑ set r v m' .
+Axiom set_monotone : forall {T} (m m' : Mem T) r v, freeFrom r m' -> m ⊑ m' -> set r v m ⊑ set r v m'.
+(* Axiom set_monotone : forall {T} (m m' : Mem T) r v, m ⊑ m' -> set r v m ⊑ set r v m' . *)
 
 (* Property 7 *)
 
