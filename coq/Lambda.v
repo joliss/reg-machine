@@ -120,7 +120,7 @@ Inductive VM : Conf -> Conf -> Prop :=
 | vm_store c n r m e s :
     ⟨STORE r c, NUM n, e, s, m⟩   ==> ⟨c, NULL, e, s, m[r:=NUM n]⟩
 | vm_stc c c' e' r m e s :
-    ⟨STC r c, CLO c' e', e, s, m⟩ ==> ⟨c, CLO c' e', e, s, m[r:=CLO c' e']⟩
+    ⟨STC r c, CLO c' e', e, s, m⟩ ==> ⟨c, NULL, e, s, m[r:=CLO c' e']⟩
 | vm_lookup e i c v a m s : nth e i = Some v ->
     ⟨LOOKUP i c, a, e, s, m⟩       ==> ⟨c, v, e, s, m⟩
 | vm_ret a c e e' m m' s :
@@ -313,7 +313,7 @@ Proof.
   <== {apply vm_call}
       ⟨APP r c, conv y', convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <|= {apply IHE2}
-      ⟨comp y (next r) (APP r c), (CLO (comp x' first RET) (convE e')), convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
+      ⟨comp y (next r) (APP r c), NULL, convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <== { apply vm_stc }
     ⟨STC r (comp y (next r) (APP r c)), (CLO (comp x' first RET) (convE e')), convE e, s, m⟩.
   = {auto}
