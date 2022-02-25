@@ -63,10 +63,15 @@ Inductive Code : Set :=
 | LOOKUP : nat -> Code -> Code
 | STORE : Reg -> Code -> Code
 | ADD : Reg -> Code -> Code
+
 | STC : Reg -> Code -> Code                         
 | APP : Reg -> Code -> Code
 | ABS : Code -> Code -> Code
-| RET : Code.
+| RET : Code
+
+| RUN_BLOCK : Code -> Code -> Code
+| RET_BLOCK : Code
+.
 
 Fixpoint comp (e : Expr) (r : Reg) (c : Code) : Code :=
   match e with
@@ -82,8 +87,10 @@ Definition compile (e : Expr) : Code := comp e first HALT.
 (** * Virtual Machine *)
 
 Inductive Value' : Set :=
+| NULL
 | NUM : nat -> Value'
-| CLO : Code -> list Value' -> Value'.
+| CLO : Code -> list Value' -> Value'
+| BLOCK_RETURN : Code -> Value'.
 
 Definition Env' := list Value'.
 
@@ -117,6 +124,11 @@ Inductive VM : Conf -> Conf -> Prop :=
     ⟨APP r c, v, e, s, m⟩          ==> ⟨c', v, v :: e', (CLO c e, m) :: s, empty⟩
 | vm_fun a c c' m e s :
     ⟨ABS c' c, a, e, s, m⟩         ==> ⟨c, CLO c' e, e, s, m⟩
+
+| vm_run_block a c c' m e s :
+    ⟨RUN_BLOCK c' c, a, e, s, m⟩ ==> ⟨c', NULL, e, (BLOCK_RETURN c, m) :: s, empty⟩
+| vm_ret_block a c m m' e s :
+    ⟨RET_BLOCK, a, e, (BLOCK_RETURN c, m') :: s, m⟩ ==> ⟨c, a, e, s, m'⟩
 where "x ==> y" := (VM x y).
 
 (** Conversion functions from semantics to VM *)
