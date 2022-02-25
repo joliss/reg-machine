@@ -118,7 +118,7 @@ Inductive VM : Conf -> Conf -> Prop :=
 | vm_add c a n r m e s : m[r] = NUM n ->
     ⟨ADD r c, NUM a, e, s, m⟩     ==> ⟨c, NUM(n + a), e, s, m⟩
 | vm_store c n r m e s :
-    ⟨STORE r c, NUM n, e, s, m⟩   ==> ⟨c, NUM n, e, s, m[r:=NUM n]⟩
+    ⟨STORE r c, NUM n, e, s, m⟩   ==> ⟨c, NULL, e, s, m[r:=NUM n]⟩
 | vm_stc c c' e' r m e s :
     ⟨STC r c, CLO c' e', e, s, m⟩ ==> ⟨c, CLO c' e', e, s, m[r:=CLO c' e']⟩
 | vm_lookup e i c v a m s : nth e i = Some v ->
@@ -251,7 +251,7 @@ Proof.
     ⟨(RUN_BLOCK
         (comp y first RET_BLOCK)
         (ADD r c)),
-      NUM n, convE e, s, m[r:=NUM n]⟩.
+      NULL, convE e, s, m[r:=NUM n]⟩.
   <== { apply vm_store }
     ⟨STORE r
            (RUN_BLOCK
