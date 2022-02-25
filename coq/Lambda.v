@@ -94,10 +94,10 @@ Inductive val : Set :=
 Definition empty := (@empty val).
 
 
-Definition Lam : Type := list (Mem val).
+Definition Stack : Type := list (Mem val).
 
 Inductive Conf : Type := 
-| conf : Code -> Value' -> Env' -> Lam -> Mem val -> Conf.
+| conf : Code -> Value' -> Env' -> Stack -> Mem val -> Conf.
 
 Notation "⟨ c , a , e , s , m ⟩" := (conf c a e s m).
 
@@ -131,7 +131,7 @@ Fixpoint conv (v : Value) : Value' :=
 
 Definition convE : Env -> Env' := map conv.
 
-Inductive stackle : Lam -> Lam -> Prop :=
+Inductive stackle : Stack -> Stack -> Prop :=
 | stackle_empty : stackle nil nil
 | stackle_cons m m' s s' : m ⊑ m' -> stackle s s' -> stackle (m :: s) (m' :: s').
 
