@@ -82,37 +82,33 @@ Definition compile (e : Expr) : Code := comp e first HALT.
 (** * Virtual Machine *)
 
 Inductive Value' : Set :=
-| Num' : nat -> Value'
-| Clo' : Code -> list Value' -> Value'.
+| NUM : nat -> Value'
+| CLO : Code -> list Value' -> Value'.
 
 Definition Env' := list Value'.
 
-Inductive val : Set :=
-| NUM : nat -> val
-| CLO : Code -> Env' -> val.
-
-Definition empty := (@empty val).
+Definition empty := (@empty Value').
 
 
-Definition Frame : Type := (val * Mem val) % type.
+Definition Frame : Type := (Value' * Mem Value') % type.
 
 Definition Stack : Type := list Frame.
 
 Inductive Conf : Type := 
-| conf : Code -> Value' -> Env' -> Stack -> Mem val -> Conf.
+| conf : Code -> Value' -> Env' -> Stack -> Mem Value' -> Conf.
 
 Notation "⟨ c , a , e , s , m ⟩" := (conf c a e s m).
 
 Reserved Notation "x ==> y" (at level 80, no associativity).
 Inductive VM : Conf -> Conf -> Prop :=
 | vm_load n c m a e s :
-    ⟨LOAD n c, a, e, s, m⟩         ==> ⟨c, Num' n, e, s, m⟩
+    ⟨LOAD n c, a, e, s, m⟩         ==> ⟨c, NUM n, e, s, m⟩
 | vm_add c a n r m e s : m[r] = NUM n ->
-    ⟨ADD r c, Num' a, e, s, m⟩     ==> ⟨c, Num'(n + a), e, s, m⟩
+    ⟨ADD r c, NUM a, e, s, m⟩     ==> ⟨c, NUM(n + a), e, s, m⟩
 | vm_store c n r m e s :
-    ⟨STORE r c, Num' n, e, s, m⟩   ==> ⟨c, Num' n, e, s, m[r:=NUM n]⟩
+    ⟨STORE r c, NUM n, e, s, m⟩   ==> ⟨c, NUM n, e, s, m[r:=NUM n]⟩
 | vm_stc c c' e' r m e s :
-    ⟨STC r c, Clo' c' e', e, s, m⟩ ==> ⟨c, Clo' c' e', e, s, m[r:=CLO c' e']⟩
+    ⟨STC r c, CLO c' e', e, s, m⟩ ==> ⟨c, CLO c' e', e, s, m[r:=CLO c' e']⟩
 | vm_lookup e i c v a m s : nth e i = Some v ->
     ⟨LOOKUP i c, a, e, s, m⟩       ==> ⟨c, v, e, s, m⟩
 | vm_ret a c e e' m m' s :
@@ -120,15 +116,15 @@ Inductive VM : Conf -> Conf -> Prop :=
 | vm_call c c' e e' v r m s : m[r]=CLO c' e' ->
     ⟨APP r c, v, e, s, m⟩          ==> ⟨c', v, v :: e', (CLO c e, m) :: s, empty⟩
 | vm_fun a c c' m e s :
-    ⟨ABS c' c, a, e, s, m⟩         ==> ⟨c, Clo' c' e, e, s, m⟩
+    ⟨ABS c' c, a, e, s, m⟩         ==> ⟨c, CLO c' e, e, s, m⟩
 where "x ==> y" := (VM x y).
 
 (** Conversion functions from semantics to VM *)
 
 Fixpoint conv (v : Value) : Value' :=
   match v with
-    | Num n   => Num' n
-    | Clo x e => Clo' (comp x first RET) (map conv e)
+    | Num n   => NUM n
+    | Clo x e => CLO (comp x first RET) (map conv e)
   end.
 
 Definition convE : Env -> Env' := map conv.
@@ -217,7 +213,7 @@ Proof.
 (** - [Val n ⇓[e] Num n]: *)
 
   begin
-  ⟨c, Num' n , convE e, s, m⟩.
+  ⟨c, NUM n , convE e, s, m⟩.
   <== { apply vm_load }
   ⟨LOAD n c, a, convE e, s, m⟩.
   [].
@@ -225,15 +221,15 @@ Proof.
 (** - [Add x y ⇓[e] Num (n + n')]: *)
 
   begin
-    ⟨c, Num' (n + n'), convE e, s, m⟩.
+    ⟨c, NUM (n + n'), convE e, s, m⟩.
   ⊑ {auto}
-    ⟨c, Num' (n + n'), convE e, s, m[r:=NUM n]⟩ .
+    ⟨c, NUM (n + n'), convE e, s, m[r:=NUM n]⟩ .
   <== { apply vm_add }
-    ⟨ADD r c, Num' n', convE e, s, m[r:=NUM n]⟩ .
+    ⟨ADD r c, NUM n', convE e, s, m[r:=NUM n]⟩ .
   <|= { apply IHE2 }
-      ⟨comp y (next r) (ADD r c), Num' n, convE e, s, m[r:=NUM n]⟩ .
+      ⟨comp y (next r) (ADD r c), NUM n, convE e, s, m[r:=NUM n]⟩ .
   <== { apply vm_store }
-      ⟨STORE r (comp y (next r) (ADD r c)), Num' n, convE e, s, m⟩.
+      ⟨STORE r (comp y (next r) (ADD r c)), NUM n, convE e, s, m⟩.
   <|= { apply IHE1 }
       ⟨comp x r (STORE r (comp y (next r) (ADD r c))), a, convE e, s, m⟩.
   [].
@@ -249,7 +245,7 @@ Proof.
 (** - [Abs x ⇓[e] Clo x e] *)
 
   begin
-    ⟨c, Clo' (comp x first RET) (convE e), convE e, s, m ⟩.
+    ⟨c, CLO (comp x first RET) (convE e), convE e, s, m ⟩.
   <== { apply vm_fun }
     ⟨ABS (comp x first RET) c, a, convE e, s, m ⟩.
   [].
@@ -269,9 +265,9 @@ Proof.
   <== {apply vm_call}
       ⟨APP r c, conv y', convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <|= {apply IHE2}
-      ⟨comp y (next r) (APP r c), (Clo' (comp x' first RET) (convE e')), convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
+      ⟨comp y (next r) (APP r c), (CLO (comp x' first RET) (convE e')), convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <== { apply vm_stc }
-    ⟨STC r (comp y (next r) (APP r c)), (Clo' (comp x' first RET) (convE e')), convE e, s, m⟩.
+    ⟨STC r (comp y (next r) (APP r c)), (CLO (comp x' first RET) (convE e')), convE e, s, m⟩.
   = {auto}
     ⟨STC r (comp y (next r) (APP r c)), conv (Clo x' e'), convE e, s, m ⟩.
   <|= { apply IHE1 }
