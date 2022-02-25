@@ -74,7 +74,7 @@ Fixpoint comp (e : Expr) (r : Reg) (c : Code) : Code :=
     | Var i   => LOOKUP i c
     | Add x y => comp x r (STORE r (comp y (next r) (ADD r c)))
     | App x y => comp x r (STC r (comp y (next r) (APP r c)))
-    | Abs x   => ABS (comp x (next first) RET) c
+    | Abs x   => ABS (comp x first RET) c
   end.
 
 Definition compile (e : Expr) : Code := comp e first HALT.
@@ -118,7 +118,7 @@ Inductive VM : Conf -> Conf -> Prop :=
 | vm_ret a c e e' m m' s :
     ⟨RET, a, e', (CLO c e, m') :: s, m⟩       ==> ⟨c, a, e, s, m'⟩
 | vm_call c c' e e' v r m s : m[r]=CLO c' e' ->
-    ⟨APP r c, v, e, s, m⟩          ==> ⟨c', v, v :: e', (CLO c e, m) :: s, empty[first:=CLO c e]⟩
+    ⟨APP r c, v, e, s, m⟩          ==> ⟨c', v, v :: e', (CLO c e, m) :: s, empty⟩
 | vm_fun a c c' m e s :
     ⟨ABS c' c, a, e, s, m⟩         ==> ⟨c, Clo' c' e, e, s, m⟩
 where "x ==> y" := (VM x y).
@@ -128,7 +128,7 @@ where "x ==> y" := (VM x y).
 Fixpoint conv (v : Value) : Value' :=
   match v with
     | Num n   => Num' n
-    | Clo x e => Clo' (comp x (next first) RET) (map conv e)
+    | Clo x e => Clo' (comp x first RET) (map conv e)
   end.
 
 Definition convE : Env -> Env' := map conv.
@@ -249,9 +249,9 @@ Proof.
 (** - [Abs x ⇓[e] Clo x e] *)
 
   begin
-    ⟨c, Clo' (comp x (next first) RET) (convE e), convE e, s, m ⟩.
+    ⟨c, Clo' (comp x first RET) (convE e), convE e, s, m ⟩.
   <== { apply vm_fun }
-    ⟨ABS (comp x (next first) RET) c, a, convE e, s, m ⟩.
+    ⟨ABS (comp x first RET) c, a, convE e, s, m ⟩.
   [].
 
 (** - [App x y ⇓[e] x''] *)
@@ -259,19 +259,19 @@ Proof.
   begin
     ⟨c, conv x'', convE e, s, m ⟩.
   <== { apply vm_ret }
-      ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), m) :: s, empty[first:=CLO c (convE e)]⟩.
+      ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
   <|= {apply  IHE3}
-      ⟨comp x' (next first) RET, conv y', convE (y' :: e'), (CLO c (convE e), m) :: s, empty[first:=CLO c (convE e)]⟩.
+      ⟨comp x' first RET, conv y', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
   = {auto}
-      ⟨comp x' (next first) RET, conv y', conv y' :: convE e', (CLO c (convE e), m) :: s, empty[first:=CLO c (convE e)]⟩.
+      ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m) :: s, empty⟩.
   ⊑ {auto with memory}
-      ⟨comp x' (next first) RET, conv y', conv y' :: convE e', (CLO c (convE e), m[r:=CLO (comp x' (next first) RET) (convE e')]) :: s, empty[first:=CLO c (convE e)]⟩.
+      ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
   <== {apply vm_call}
-      ⟨APP r c, conv y', convE e, s, m[r:=CLO (comp x' (next first) RET) (convE e')]⟩.
+      ⟨APP r c, conv y', convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <|= {apply IHE2}
-      ⟨comp y (next r) (APP r c), (Clo' (comp x' (next first) RET) (convE e')), convE e, s, m[r:=CLO (comp x' (next first) RET) (convE e')]⟩.
+      ⟨comp y (next r) (APP r c), (Clo' (comp x' first RET) (convE e')), convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <== { apply vm_stc }
-    ⟨STC r (comp y (next r) (APP r c)), (Clo' (comp x' (next first) RET) (convE e')), convE e, s, m⟩.
+    ⟨STC r (comp y (next r) (APP r c)), (Clo' (comp x' first RET) (convE e')), convE e, s, m⟩.
   = {auto}
     ⟨STC r (comp y (next r) (APP r c)), conv (Clo x' e'), convE e, s, m ⟩.
   <|= { apply IHE1 }
