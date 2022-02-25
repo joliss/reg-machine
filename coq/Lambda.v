@@ -94,7 +94,9 @@ Inductive val : Set :=
 Definition empty := (@empty val).
 
 
-Definition Stack : Type := list (Mem val).
+Definition Frame : Type := (val * Mem val) % type.
+
+Definition Stack : Type := list Frame.
 
 Inductive Conf : Type := 
 | conf : Code -> Value' -> Env' -> Stack -> Mem val -> Conf.
@@ -113,10 +115,10 @@ Inductive VM : Conf -> Conf -> Prop :=
     ⟨STC r c, Clo' c' e', e, s, m⟩ ==> ⟨c, Clo' c' e', e, s, m[r:=CLO c' e']⟩
 | vm_lookup e i c v a m s : nth e i = Some v ->
     ⟨LOOKUP i c, a, e, s, m⟩       ==> ⟨c, v, e, s, m⟩
-| vm_ret a c e e' m m' s : m[first] = CLO c e ->
-    ⟨RET, a, e', m' :: s, m⟩       ==> ⟨c, a, e, s, m'⟩
+| vm_ret a c e e' m m' s :
+    ⟨RET, a, e', (CLO c e, m') :: s, m⟩       ==> ⟨c, a, e, s, m'⟩
 | vm_call c c' e e' v r m s : m[r]=CLO c' e' ->
-    ⟨APP r c, v, e, s, m⟩          ==> ⟨c', v, v :: e', m :: s, empty[first:=CLO c e]⟩
+    ⟨APP r c, v, e, s, m⟩          ==> ⟨c', v, v :: e', (CLO c e, m) :: s, empty[first:=CLO c e]⟩
 | vm_fun a c c' m e s :
     ⟨ABS c' c, a, e, s, m⟩         ==> ⟨c, Clo' c' e, e, s, m⟩
 where "x ==> y" := (VM x y).
@@ -133,13 +135,20 @@ Definition convE : Env -> Env' := map conv.
 
 Inductive stackle : Stack -> Stack -> Prop :=
 | stackle_empty : stackle nil nil
-| stackle_cons m m' s s' : m ⊑ m' -> stackle s s' -> stackle (m :: s) (m' :: s').
+| stackle_cons r m m' s s' : m ⊑ m' -> stackle s s' -> stackle ((r, m) :: s) ((r, m') :: s').
 
 Hint Constructors stackle : memory.
 
 Lemma stackle_refl s : stackle s s.
 Proof.
-  induction s; constructor; auto with memory.
+  induction s.
+
+  (* nil *)
+  constructor.
+
+  (* a :: s *)
+  induction a.
+  auto with memory.
 Qed.
 
 Lemma stackle_trans s1 s2 s3 : stackle s1 s2 -> stackle s2 s3 -> stackle s1 s3.
@@ -172,9 +181,9 @@ Definition Conf := Conf.
 Definition Pre := cle.
 Definition Rel := VM.
 Lemma monotone : monotonicity cle VM.
-  prove_monotonicity1;
-    try (match goal with [H : stackle (_ :: _) _ |- _] => inversion H end)
-    ; prove_monotonicity2.
+  prove_monotonicity1.
+  all: try (match goal with [H : stackle (_ :: _) _ |- _] => inversion H end).
+  all: prove_monotonicity2.
 Qed.
 Lemma preorder : is_preorder cle.
 prove_preorder. Qed.
@@ -250,13 +259,13 @@ Proof.
   begin
     ⟨c, conv x'', convE e, s, m ⟩.
   <== { apply vm_ret }
-      ⟨RET, conv x'', convE (y' :: e'), m :: s, empty[first:=CLO c (convE e)]⟩.
+      ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), m) :: s, empty[first:=CLO c (convE e)]⟩.
   <|= {apply  IHE3}
-      ⟨comp x' (next first) RET, conv y', convE (y' :: e'), m :: s, empty[first:=CLO c (convE e)]⟩.
+      ⟨comp x' (next first) RET, conv y', convE (y' :: e'), (CLO c (convE e), m) :: s, empty[first:=CLO c (convE e)]⟩.
   = {auto}
-      ⟨comp x' (next first) RET, conv y', conv y' :: convE e', m::s, empty[first:=CLO c (convE e)]⟩.
+      ⟨comp x' (next first) RET, conv y', conv y' :: convE e', (CLO c (convE e), m) :: s, empty[first:=CLO c (convE e)]⟩.
   ⊑ {auto with memory}
-      ⟨comp x' (next first) RET, conv y', conv y' :: convE e', m[r:=CLO (comp x' (next first) RET) (convE e')]::s, empty[first:=CLO c (convE e)]⟩.
+      ⟨comp x' (next first) RET, conv y', conv y' :: convE e', (CLO c (convE e), m[r:=CLO (comp x' (next first) RET) (convE e')]) :: s, empty[first:=CLO c (convE e)]⟩.
   <== {apply vm_call}
       ⟨APP r c, conv y', convE e, s, m[r:=CLO (comp x' (next first) RET) (convE e')]⟩.
   <|= {apply IHE2}
