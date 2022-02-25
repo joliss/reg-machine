@@ -77,7 +77,12 @@ Fixpoint comp (e : Expr) (r : Reg) (c : Code) : Code :=
   match e with
     | Val n   => LOAD n c
     | Var i   => LOOKUP i c
-    | Add x y => comp x r (STORE r (comp y (next r) (ADD r c)))
+    | Add x y => RUN_BLOCK
+                  (comp x first RET_BLOCK)
+                  (STORE r
+                         (RUN_BLOCK
+                            (comp y first RET_BLOCK)
+                            (ADD r c)))
     | App x y => comp x r (STC r (comp y (next r) (APP r c)))
     | Abs x   => ABS (comp x first RET) c
   end.
@@ -238,12 +243,43 @@ Proof.
     ⟨c, NUM (n + n'), convE e, s, m[r:=NUM n]⟩ .
   <== { apply vm_add }
     ⟨ADD r c, NUM n', convE e, s, m[r:=NUM n]⟩ .
+  <== { apply vm_ret_block }
+    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD r c), m[r:=NUM n]) :: s, empty⟩.
   <|= { apply IHE2 }
-      ⟨comp y (next r) (ADD r c), NUM n, convE e, s, m[r:=NUM n]⟩ .
+      ⟨comp y first RET_BLOCK, NULL, convE e, (BLOCK_RETURN (ADD r c), m[r:=NUM n]) :: s, empty⟩.
+  <== { apply vm_run_block }
+    ⟨(RUN_BLOCK
+        (comp y first RET_BLOCK)
+        (ADD r c)),
+      NUM n, convE e, s, m[r:=NUM n]⟩.
   <== { apply vm_store }
-      ⟨STORE r (comp y (next r) (ADD r c)), NUM n, convE e, s, m⟩.
+    ⟨STORE r
+           (RUN_BLOCK
+              (comp y first RET_BLOCK)
+              (ADD r c)),
+      NUM n, convE e, s, m⟩.
+  <== { apply vm_ret_block }
+    ⟨RET_BLOCK, NUM n, convE e,
+      (BLOCK_RETURN (STORE r
+                           (RUN_BLOCK
+                              (comp y first RET_BLOCK)
+                              (ADD r c))),
+        m) :: s, empty⟩.
   <|= { apply IHE1 }
-      ⟨comp x r (STORE r (comp y (next r) (ADD r c))), a, convE e, s, m⟩.
+    ⟨comp x first RET_BLOCK, NULL, convE e,
+      (BLOCK_RETURN (STORE r
+                           (RUN_BLOCK
+                              (comp y first RET_BLOCK)
+                              (ADD r c))),
+        m) :: s, empty⟩.
+  <== { apply vm_run_block }
+    ⟨RUN_BLOCK
+       (comp x first RET_BLOCK)
+       (STORE r
+              (RUN_BLOCK
+                 (comp y first RET_BLOCK)
+                 (ADD r c)))
+      , a, convE e, s, m⟩.
   [].
 
 (** - [Var i ⇓[e] v] *)
