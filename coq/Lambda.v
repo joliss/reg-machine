@@ -215,18 +215,16 @@ Import VMCalc.
 
 (** Specification of the compiler *)
 
-Theorem spec p v e r c a m s :
-  freeFrom r m ->  p ⇓[e] v ->
-  ⟨comp p r c, a, convE e, s, m⟩ =|> ⟨c , conv v, convE e, s, m⟩.
+Theorem spec p v e c a s :
+  p ⇓[e] v ->
+  ⟨comp p first c, a, convE e, s, empty⟩ =|> ⟨c , conv v, convE e, s, empty⟩.
 
 (** Setup the induction proof *)
 
 Proof.
-  intros F E.
+  intros E.
   generalize dependent c.
   generalize dependent a.
-  generalize dependent m.
-  generalize dependent r.
   generalize dependent s.
   induction E;intros.
 
@@ -235,131 +233,131 @@ Proof.
 (** - [Val n ⇓[e] Num n]: *)
 
   begin
-  ⟨c, NUM n , convE e, s, m⟩.
+  ⟨c, NUM n , convE e, s, empty⟩.
   <== { apply vm_load }
-  ⟨LOAD n c, a, convE e, s, m⟩.
+  ⟨LOAD n c, a, convE e, s, empty⟩.
   [].
 
 (** - [Add x y ⇓[e] Num (n + n')]: *)
 
   begin
-    ⟨c, NUM (n + n'), convE e, s, m⟩.
-  ⊑ {auto}
-    ⟨c, NUM (n + n'), convE e, s, m[r:=NUM n]⟩ .
+    ⟨c, NUM (n + n'), convE e, s, empty⟩.
+  ⊑ { auto with memory }
+    ⟨c, NUM (n + n'), convE e, s, empty[first:=NUM n]⟩ .
   <== { apply vm_add }
-    ⟨ADD r c, NUM n', convE e, s, m[r:=NUM n]⟩ .
+    ⟨ADD first c, NUM n', convE e, s, empty[first:=NUM n]⟩ .
   <== { apply vm_ret_block }
-    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD r c), m[r:=NUM n]) :: s, empty⟩.
+    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, empty⟩.
   <|= { apply IHE2 }
-      ⟨comp y first RET_BLOCK, NULL, convE e, (BLOCK_RETURN (ADD r c), m[r:=NUM n]) :: s, empty⟩.
+      ⟨comp y first RET_BLOCK, NULL, convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, empty⟩.
   <== { apply vm_run_block }
     ⟨(RUN_BLOCK
         (comp y first RET_BLOCK)
-        (ADD r c)),
-      NULL, convE e, s, m[r:=NUM n]⟩.
+        (ADD first c)),
+      NULL, convE e, s, empty[first:=NUM n]⟩.
   <== { apply vm_store }
-    ⟨STORE r
+    ⟨STORE first
            (RUN_BLOCK
               (comp y first RET_BLOCK)
-              (ADD r c)),
-      NUM n, convE e, s, m⟩.
+              (ADD first c)),
+      NUM n, convE e, s, empty⟩.
   <== { apply vm_ret_block }
     ⟨RET_BLOCK, NUM n, convE e,
-      (BLOCK_RETURN (STORE r
+      (BLOCK_RETURN (STORE first
                            (RUN_BLOCK
                               (comp y first RET_BLOCK)
-                              (ADD r c))),
-        m) :: s, empty⟩.
+                              (ADD first c))),
+        empty) :: s, empty⟩.
   <|= { apply IHE1 }
     ⟨comp x first RET_BLOCK, NULL, convE e,
-      (BLOCK_RETURN (STORE r
+      (BLOCK_RETURN (STORE first
                            (RUN_BLOCK
                               (comp y first RET_BLOCK)
-                              (ADD r c))),
-        m) :: s, empty⟩.
+                              (ADD first c))),
+        empty) :: s, empty⟩.
   <== { apply vm_run_block }
     ⟨RUN_BLOCK
        (comp x first RET_BLOCK)
-       (STORE r
+       (STORE first
               (RUN_BLOCK
                  (comp y first RET_BLOCK)
-                 (ADD r c)))
-      , a, convE e, s, m⟩.
+                 (ADD first c)))
+      , a, convE e, s, empty⟩.
   [].
 
 (** - [Var i ⇓[e] v] *)
 
   begin
-    ⟨c, conv v, convE e , s, m⟩.
+    ⟨c, conv v, convE e , s, empty⟩.
   <== {apply vm_lookup; unfold convE; rewrite nth_map; rewr_assumption}
-      ⟨LOOKUP i c, a , convE e, s, m ⟩.
+      ⟨LOOKUP i c, a , convE e, s, empty ⟩.
    [].
 
 (** - [Abs x ⇓[e] Clo x e] *)
 
   begin
-    ⟨c, CLO (comp x first RET) (convE e), convE e, s, m ⟩.
+    ⟨c, CLO (comp x first RET) (convE e), convE e, s, empty ⟩.
   <== { apply vm_fun }
-    ⟨ABS (comp x first RET) c, a, convE e, s, m ⟩.
+    ⟨ABS (comp x first RET) c, a, convE e, s, empty ⟩.
   [].
 
 (** - [App x y ⇓[e] x''] *)
 
   begin
-    ⟨c, conv x'', convE e, s, m ⟩.
+    ⟨c, conv x'', convE e, s, empty ⟩.
   <== { apply vm_ret }
-    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
+    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty) :: s, empty⟩.
   <|= {apply  IHE3}
-      ⟨comp x' first RET, conv y', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
+      ⟨comp x' first RET, conv y', convE (y' :: e'), (CLO c (convE e), empty) :: s, empty⟩.
   = {auto}
-      ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m) :: s, empty⟩.
+      ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), empty) :: s, empty⟩.
   ⊑ {auto with memory}
-    ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
+    ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), empty[first:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
   <== {apply vm_call}
-    ⟨(APP r c), conv y', convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
+    ⟨(APP first c), conv y', convE e, s, empty[first:=CLO (comp x' first RET) (convE e')]⟩.
   <== { apply vm_ret_block }
     ⟨RET_BLOCK, conv y', convE e,
-      (BLOCK_RETURN (APP r c), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
+      (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
   <|= { apply IHE2 }
       ⟨comp y first RET_BLOCK, NULL, convE e,
-        (BLOCK_RETURN (APP r c), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
+        (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
   <== { apply vm_run_block }
     ⟨RUN_BLOCK
        (comp y first RET_BLOCK)
-       (APP r c),
-      NULL, convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
+       (APP first c),
+      NULL, convE e, s, empty[first:=CLO (comp x' first RET) (convE e')]⟩.
   <== { apply vm_stc }
-    ⟨STC r
+    ⟨STC first
          (RUN_BLOCK
             (comp y first RET_BLOCK)
-            (APP r c)),
-      CLO (comp x' first RET) (convE e'), convE e, s, m⟩.
+            (APP first c)),
+      CLO (comp x' first RET) (convE e'), convE e, s, empty⟩.
   = { auto }
-      ⟨STC r
+      ⟨STC first
            (RUN_BLOCK
               (comp y first RET_BLOCK)
-              (APP r c)),
-        conv (Clo x' e'), convE e, s, m⟩.
+              (APP first c)),
+        conv (Clo x' e'), convE e, s, empty⟩.
   <== { apply vm_ret_block }
     ⟨RET_BLOCK, conv (Clo x' e'), convE e,
-      (BLOCK_RETURN (STC r
+      (BLOCK_RETURN (STC first
                          (RUN_BLOCK
                             (comp y first RET_BLOCK)
-                            (APP r c))), m) :: s, empty⟩.
+                            (APP first c))), empty) :: s, empty⟩.
   <|= { apply IHE1 }
       ⟨comp x first RET_BLOCK, NULL, convE e,
-        (BLOCK_RETURN (STC r
+        (BLOCK_RETURN (STC first
                            (RUN_BLOCK
                               (comp y first RET_BLOCK)
-                              (APP r c))), m) :: s, empty⟩.
+                              (APP first c))), empty) :: s, empty⟩.
   <== { apply vm_run_block }
     ⟨RUN_BLOCK
        (comp x first RET_BLOCK)
-       (STC r
+       (STC first
             (RUN_BLOCK
                (comp y first RET_BLOCK)
-               (APP r c))),
-      a, convE e, s, m ⟩.
+               (APP first c))),
+      a, convE e, s, empty ⟩.
   [].
 Qed.
 
