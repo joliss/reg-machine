@@ -83,7 +83,12 @@ Fixpoint comp (e : Expr) (r : Reg) (c : Code) : Code :=
                          (RUN_BLOCK
                             (comp y first RET_BLOCK)
                             (ADD r c)))
-    | App x y => comp x r (STC r (comp y (next r) (APP r c)))
+    | App x y => RUN_BLOCK
+                  (comp x first RET_BLOCK)
+                  (STC r
+                       (RUN_BLOCK
+                          (comp y first RET_BLOCK)
+                          (APP r c)))
     | Abs x   => ABS (comp x first RET) c
   end.
 
@@ -303,23 +308,58 @@ Proof.
   begin
     ⟨c, conv x'', convE e, s, m ⟩.
   <== { apply vm_ret }
-      ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
+    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
   <|= {apply  IHE3}
       ⟨comp x' first RET, conv y', convE (y' :: e'), (CLO c (convE e), m) :: s, empty⟩.
   = {auto}
       ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m) :: s, empty⟩.
   ⊑ {auto with memory}
-      ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
+    ⟨comp x' first RET, conv y', conv y' :: convE e', (CLO c (convE e), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
   <== {apply vm_call}
-      ⟨APP r c, conv y', convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
-  <|= {apply IHE2}
-      ⟨comp y (next r) (APP r c), NULL, convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
+    ⟨(APP r c), conv y', convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
+  <== { apply vm_ret_block }
+    ⟨RET_BLOCK, conv y', convE e,
+      (BLOCK_RETURN (APP r c), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
+  <|= { apply IHE2 }
+      ⟨comp y first RET_BLOCK, NULL, convE e,
+        (BLOCK_RETURN (APP r c), m[r:=CLO (comp x' first RET) (convE e')]) :: s, empty⟩.
+  <== { apply vm_run_block }
+    ⟨RUN_BLOCK
+       (comp y first RET_BLOCK)
+       (APP r c),
+      NULL, convE e, s, m[r:=CLO (comp x' first RET) (convE e')]⟩.
   <== { apply vm_stc }
-    ⟨STC r (comp y (next r) (APP r c)), (CLO (comp x' first RET) (convE e')), convE e, s, m⟩.
-  = {auto}
-    ⟨STC r (comp y (next r) (APP r c)), conv (Clo x' e'), convE e, s, m ⟩.
+    ⟨STC r
+         (RUN_BLOCK
+            (comp y first RET_BLOCK)
+            (APP r c)),
+      CLO (comp x' first RET) (convE e'), convE e, s, m⟩.
+  = { auto }
+      ⟨STC r
+           (RUN_BLOCK
+              (comp y first RET_BLOCK)
+              (APP r c)),
+        conv (Clo x' e'), convE e, s, m⟩.
+  <== { apply vm_ret_block }
+    ⟨RET_BLOCK, conv (Clo x' e'), convE e,
+      (BLOCK_RETURN (STC r
+                         (RUN_BLOCK
+                            (comp y first RET_BLOCK)
+                            (APP r c))), m) :: s, empty⟩.
   <|= { apply IHE1 }
-    ⟨comp x r (STC r (comp y (next r) (APP r c))), a, convE e, s, m ⟩.
+      ⟨comp x first RET_BLOCK, NULL, convE e,
+        (BLOCK_RETURN (STC r
+                           (RUN_BLOCK
+                              (comp y first RET_BLOCK)
+                              (APP r c))), m) :: s, empty⟩.
+  <== { apply vm_run_block }
+    ⟨RUN_BLOCK
+       (comp x first RET_BLOCK)
+       (STC r
+            (RUN_BLOCK
+               (comp y first RET_BLOCK)
+               (APP r c))),
+      a, convE e, s, m ⟩.
   [].
 Qed.
 
