@@ -395,7 +395,7 @@ Theorem sound p a C : terminates p -> ⟨compile p, a, nil, nil, empty⟩ =>>! C
 Proof.
   unfold terminates. intros T M. destruct T as [v T].
   pose (spec' p a nil nil v T) as H'.
-  unfold Reach in *. repeat autodestruct.
+  destruct H' as [x H].
   pose (determ_trc determ_vm) as D.
   unfold determ in D.
   exists v. eexists. split. eapply D. apply M. split.

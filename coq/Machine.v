@@ -123,51 +123,6 @@ Proof.
     apply IHM in Ic'. destruct Ic'. destruct H0. eexists. split. eapply trc_step_trans'; eassumption. assumption.
 Qed.
 
-Definition Reach (C1 C2 : Conf) : Prop := exists C, C1 =>> C /\ C ⊒ C2.
-
-Infix "=|>" := Reach (at level 80, no associativity).
-
-Lemma Reach_refl C : C =|> C.
-Proof.
-  exists C. split; auto.
-Qed.
-
-Hint Resolve Reach_refl : core.
-
-Lemma Reach_eq C1 C2 : C1 = C2 -> C1 =|> C2.
-Proof.
-  intros. subst. auto.
-Qed.
-
-
-
-Lemma Reach_trans C1 C2 C3 : C1 =|> C2 -> C2 =|> C3 -> C1 =|> C3.
-Proof.
-  intros L1 L2.
-  destruct L1 as [C1' L1]. destruct L1 as [S1 M1].
-  destruct L2 as [C2' L2]. destruct L2 as [S2 M2].
-  eapply monotone_machine in S2;[|eassumption]. destruct S2 as [C3' G]. destruct G as [S2' M2'].
-  eexists. split.
-  - eapply trc_trans. apply S1. apply S2'.
-  - eapply cle_trans;eassumption.
-Qed. 
-
-Lemma Reach_cle C1 C2 : C1 ⊒ C2 -> C1 =|> C2.
-Proof.
-  intros L. eexists. split. apply trc_refl. assumption.
-Qed.
-
-Lemma Reach_trc C1 C2 : C1 =>> C2 -> C1 =|> C2.
-Proof.
-  intros L. eexists. split. eassumption. apply cle_refl. 
-Qed.
-
-Lemma Reach_vm C1 C2 : C1 ==> C2 -> C1 =|> C2.
-Proof.
-  intros L. apply Reach_trc. apply trc_step. assumption.
-Qed.
-
-
 Definition determ {A} (R : A -> A -> Prop) : Prop := forall C C1 C2, R C C1 -> R C C2 -> C1 = C2.
 
 Definition trc' C C' :=  C =>> C' /\ ~ exists C'', C' ==> C''.
