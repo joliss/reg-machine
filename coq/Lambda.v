@@ -151,37 +151,6 @@ Fixpoint conv (v : Value) : Value' :=
 
 Definition convE : Env -> Env' := map conv.
 
-Inductive stackle : Stack -> Stack -> Prop :=
-| stackle_empty : stackle nil nil
-| stackle_cons r m m' s s' : m ⊑ m' -> stackle s s' -> stackle ((r, m) :: s) ((r, m') :: s').
-
-Hint Constructors stackle : memory.
-
-Lemma stackle_refl s : stackle s s.
-Proof.
-  induction s.
-
-  (* nil *)
-  constructor.
-
-  (* a :: s *)
-  induction a.
-  auto with memory.
-Qed.
-
-Lemma stackle_trans s1 s2 s3 : stackle s1 s2 -> stackle s2 s3 -> stackle s1 s3.
-Proof.
-  intros L1. generalize s3. induction L1; intros s3' L2. assumption. inversion L2. subst. constructor;
-  eauto with memory.
-Qed.
-
-Hint Resolve stackle_refl stackle_trans : core.
-
-Inductive cle : Conf -> Conf -> Prop :=
- | cle_mem  c a e s s' m m' : stackle s s' -> m ⊑ m' -> cle ⟨ c , a , e , s, m ⟩ ⟨ c , a , e , s', m' ⟩.
-
-Hint Constructors cle : core.
-
 Lemma rel_eq {T} {R : T -> T -> Prop} x y y' : R x y' -> y = y' -> R x y.
 Proof. intros. subst. auto.
 Qed .
