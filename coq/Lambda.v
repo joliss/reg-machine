@@ -240,15 +240,16 @@ Proof.
 
 (** - [Add x y ⇓[e] Num (n + n')]: *)
 
-  edestruct IHE1, IHE2.
+  edestruct IHE1 as [m1 H1].
+  edestruct IHE2 as [m2 H2].
 
   begin
     ⟨c, NUM (n + n'), convE e, s, empty[first:=NUM n]⟩ .
   <== { apply vm_add }
     ⟨ADD first c, NUM n', convE e, s, empty[first:=NUM n]⟩ .
   <== { apply vm_ret_block }
-    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, x1⟩.
-  <|= { apply H0 }
+    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, m2⟩.
+  <|= { apply H2 }
       ⟨comp y RET_BLOCK, NULL, convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, empty⟩.
   <== { apply vm_run_block }
     ⟨(RUN_BLOCK
@@ -267,8 +268,8 @@ Proof.
                            (RUN_BLOCK
                               (comp y RET_BLOCK)
                               (ADD first c))),
-        empty) :: s, x0⟩.
-  <|= { apply H }
+        empty) :: s, m1⟩.
+  <|= { apply H1 }
     ⟨comp x RET_BLOCK, NULL, convE e,
       (BLOCK_RETURN (STORE first
                            (RUN_BLOCK
@@ -303,13 +304,15 @@ Proof.
 
 (** - [App x y ⇓[e] x''] *)
 
-  edestruct IHE1, IHE2, IHE3.
+  edestruct IHE1 as [m1 H1].
+  edestruct IHE2 as [m2 H2].
+  edestruct IHE3 as [m3 H3].
 
   begin
     ⟨c, conv x'', convE e, s, empty[first:=CLO (comp x' RET) (convE e')] ⟩.
   <== { apply vm_ret }
-    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, x2⟩.
-  <|= {apply H1}
+    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, m3⟩.
+  <|= {apply H3}
       ⟨comp x' RET, conv y', convE (y' :: e'), (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
   = {auto}
       ⟨comp x' RET, conv y', conv y' :: convE e', (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
@@ -317,8 +320,8 @@ Proof.
     ⟨(APP first c), conv y', convE e, s, empty[first:=CLO (comp x' RET) (convE e')]⟩.
   <== { apply vm_ret_block }
     ⟨RET_BLOCK, conv y', convE e,
-      (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' RET) (convE e')]) :: s, x1⟩.
-  <|= { apply H0 }
+      (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' RET) (convE e')]) :: s, m2⟩.
+  <|= { apply H2 }
       ⟨comp y RET_BLOCK, NULL, convE e,
         (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
   <== { apply vm_run_block }
@@ -343,8 +346,8 @@ Proof.
       (BLOCK_RETURN (STC first
                          (RUN_BLOCK
                             (comp y RET_BLOCK)
-                            (APP first c))), empty) :: s, x0⟩.
-  <|= { apply H }
+                            (APP first c))), empty) :: s, m1⟩.
+  <|= { apply H1 }
       ⟨comp x RET_BLOCK, NULL, convE e,
         (BLOCK_RETURN (STC first
                            (RUN_BLOCK
@@ -368,10 +371,10 @@ Theorem spec' x a (e : Env) s v : x ⇓[e] v ->
                                 exists m, ⟨compile x, a, convE e, s, empty⟩  =|> ⟨HALT , conv v , convE e, s, m⟩.
 Proof.
   intros E.
-  edestruct (spec x v e); auto.
-  exists x0.
+  edestruct (spec x v e) as [m H]; auto.
+  exists m.
   begin
-    ⟨HALT , conv v , convE e, s, x0⟩.
+    ⟨HALT , conv v , convE e, s, m⟩.
   <|= { apply H }
       ⟨comp x HALT, a, convE e, s, empty⟩.
   [].
