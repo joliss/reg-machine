@@ -81,20 +81,12 @@ Ltac check_exp x y := let h := fresh "check" in assert (h: x = y) by dist; clear
 Ltac check_rel Bidir Rel := first [check_exp Bidir Rel|
                              fail 2 "wrong goal; expected relation =>> but found" Rel].
 
-Tactic Notation "[]" := apply Reach_refl.
+Tactic Notation "[]" := apply trc_refl.
 
-
-Tactic Notation  (at level 2)    "⊑" "{?}" constr(e2) :=
-  match goal with
-    | [|- ?Rel ?lhs ?rhs] => check_rel Reach Rel;
-                            let h := fresh "rewriting" in
-                            assert(Pre rhs e2)
-      | _ => fail 1 "goal is not a VM"
-    end.
 
 Tactic Notation  (at level 2)    "=" "{?}" constr(e2) :=
   match goal with
-    | [|- ?Rel ?lhs ?rhs] => check_rel Reach Rel;
+    | [|- ?Rel ?lhs ?rhs] => check_rel trc Rel;
                             let h := fresh "rewriting" in
                             assert(rhs = e2)
       | _ => fail 1 "goal is not a VM"
@@ -102,7 +94,7 @@ Tactic Notation  (at level 2)    "=" "{?}" constr(e2) :=
 
 Tactic Notation  (at level 2)    "<==" "{?}" constr(e2) :=
   match goal with
-    | [|- ?Rel ?lhs ?rhs] => check_rel Reach Rel;
+    | [|- ?Rel ?lhs ?rhs] => check_rel trc Rel;
                             let h := fresh "rewriting" in
                             assert(e2 ==> rhs)
       | _ => fail 1 "goal is not a VM"
@@ -110,47 +102,44 @@ Tactic Notation  (at level 2)    "<==" "{?}" constr(e2) :=
 
 
 
-Tactic Notation  (at level 2)    "<|=" "{?}" constr(e2) :=
+Tactic Notation  (at level 2)    "<<=" "{?}" constr(e2) :=
   match goal with
-    | [|- ?Rel ?lhs ?rhs] => check_rel Reach Rel;
+    | [|- ?Rel ?lhs ?rhs] => check_rel trc Rel;
         first [let h := fresh "rewriting" in
-               assert(h : Reach e2 rhs) | fail 2]
+               assert(h : trc e2 rhs) | fail 2]
       | _ => fail 1 "goal is not a VM"
     end.
 
 
 
-Tactic Notation  (at level 2)    "<|=" "{{"tactic(t1) "}}" constr(e2) :=
+Tactic Notation  (at level 2)    "<<=" "{{"tactic(t1) "}}" constr(e2) :=
   match goal with
-    | [|- ?Rel ?lhs ?rhs] => check_rel Reach Rel;
+    | [|- ?Rel ?lhs ?rhs] => check_rel trc Rel;
         first [let h := fresh "rewriting" in
-               assert(h : Reach e2 rhs) by t1;
-                 apply (fun x => Reach_trans _ _ _ x h); clear h | fail 2]
+               assert(h : trc e2 rhs) by t1;
+                 apply (fun x => trc_trans _ _ _ x h); clear h | fail 2]
       | _ => fail 1 "goal is not a VM"
     end.
 
 
 
-Tactic Notation  (at level 2)    "<|=" "{"tactic(t) "}" constr(e) :=
-  let t' := try solve [t;eauto with memory|apply Reach_refl;eauto]
-  in 
-  <|= {{ dist' t' }} e .
-
-Tactic Notation  (at level 2)    "⊑" "{"tactic(t) "}" constr(e) :=
-  <|= {{ apply Reach_cle; dist; constructor; solve_memle t }} e .
+Tactic Notation  (at level 2)    "<<=" "{"tactic(t) "}" constr(e) :=
+  let t' := try solve [t;eauto with memory|apply trc_refl;eauto]
+  in
+  <<= {{ dist' t' }} e .
 
 Tactic Notation  (at level 2)    "=" "{"tactic(t) "}" constr(e) :=
-   <|= {{ apply Reach_eq;  dist' t}} e.
+   <<= {{ apply trc_eq;  dist' t}} e.
 
 
 Tactic Notation  (at level 2)    "<==" "{" tactic(t) "}" constr(e) :=
   let tt := try solve[apply trc_step; t; eauto using get_set|apply trc_refl;eauto]
-  in <|= {{ apply Reach_trc;  dist' tt}} e.
+  in <<= {{ dist' tt}} e.
 
 
 Tactic Notation  (at level 2)  "begin" constr(rhs) :=
   match goal with
-    | [|- ?Rel ?lhs ?rhs'] => check_rel Reach Rel; check_exp rhs rhs'
+    | [|- ?Rel ?lhs ?rhs'] => check_rel trc Rel; check_exp rhs rhs'
     | _ => fail 1 "rhs does not match"
   end.
 End Calculation.

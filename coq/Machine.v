@@ -76,6 +76,11 @@ Proof. intros. eapply rt_trans; eauto using rt_step. Qed.
 Lemma trc_trans c1 c2 c3 : c1 =>> c2 -> c2 =>> c3 -> c1 =>> c3.
 Proof. apply rt_trans. Qed.
 
+Lemma trc_eq C1 C2 : C1 = C2 -> C1 =>> C2.
+Proof.
+  intros. subst. apply trc_refl.
+Qed.
+
 
 Hint Resolve trc_step trc_step_trans : core.
 Hint Immediate trc_refl : core.
