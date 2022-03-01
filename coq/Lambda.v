@@ -217,7 +217,7 @@ Import VMCalc.
 
 Theorem spec p v e c a s :
   p ⇓[e] v ->
-  ⟨comp p c, a, convE e, s, empty⟩ =|> ⟨c , conv v, convE e, s, empty⟩.
+  exists m, ⟨comp p c, a, convE e, s, empty⟩ =|> ⟨c , conv v, convE e, s, m⟩.
 
 (** Setup the induction proof *)
 
@@ -226,7 +226,7 @@ Proof.
   generalize dependent c.
   generalize dependent a.
   generalize dependent s.
-  induction E;intros.
+  induction E; intros; eexists.
 
 (** Calculation of the compiler *)
 
@@ -240,6 +240,8 @@ Proof.
 
 (** - [Add x y ⇓[e] Num (n + n')]: *)
 
+  edestruct IHE1, IHE2.
+
   begin
     ⟨c, NUM (n + n'), convE e, s, empty⟩.
   ⊑ { auto with memory }
@@ -247,8 +249,8 @@ Proof.
   <== { apply vm_add }
     ⟨ADD first c, NUM n', convE e, s, empty[first:=NUM n]⟩ .
   <== { apply vm_ret_block }
-    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, empty⟩.
-  <|= { apply IHE2 }
+    ⟨RET_BLOCK, NUM n', convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, x1⟩.
+  <|= { apply H0 }
       ⟨comp y RET_BLOCK, NULL, convE e, (BLOCK_RETURN (ADD first c), empty[first:=NUM n]) :: s, empty⟩.
   <== { apply vm_run_block }
     ⟨(RUN_BLOCK
@@ -267,8 +269,8 @@ Proof.
                            (RUN_BLOCK
                               (comp y RET_BLOCK)
                               (ADD first c))),
-        empty) :: s, empty⟩.
-  <|= { apply IHE1 }
+        empty) :: s, x0⟩.
+  <|= { apply H }
     ⟨comp x RET_BLOCK, NULL, convE e,
       (BLOCK_RETURN (STORE first
                            (RUN_BLOCK
@@ -303,11 +305,13 @@ Proof.
 
 (** - [App x y ⇓[e] x''] *)
 
+  edestruct IHE1, IHE2, IHE3.
+
   begin
     ⟨c, conv x'', convE e, s, empty ⟩.
   <== { apply vm_ret }
-    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty) :: s, empty⟩.
-  <|= {apply  IHE3}
+    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty) :: s, x2⟩.
+  <|= {apply H1}
       ⟨comp x' RET, conv y', convE (y' :: e'), (CLO c (convE e), empty) :: s, empty⟩.
   = {auto}
       ⟨comp x' RET, conv y', conv y' :: convE e', (CLO c (convE e), empty) :: s, empty⟩.
@@ -317,8 +321,8 @@ Proof.
     ⟨(APP first c), conv y', convE e, s, empty[first:=CLO (comp x' RET) (convE e')]⟩.
   <== { apply vm_ret_block }
     ⟨RET_BLOCK, conv y', convE e,
-      (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
-  <|= { apply IHE2 }
+      (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' RET) (convE e')]) :: s, x1⟩.
+  <|= { apply H0 }
       ⟨comp y RET_BLOCK, NULL, convE e,
         (BLOCK_RETURN (APP first c), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
   <== { apply vm_run_block }
@@ -343,8 +347,8 @@ Proof.
       (BLOCK_RETURN (STC first
                          (RUN_BLOCK
                             (comp y RET_BLOCK)
-                            (APP first c))), empty) :: s, empty⟩.
-  <|= { apply IHE1 }
+                            (APP first c))), empty) :: s, x0⟩.
+  <|= { apply H }
       ⟨comp x RET_BLOCK, NULL, convE e,
         (BLOCK_RETURN (STC first
                            (RUN_BLOCK
@@ -365,12 +369,14 @@ Qed.
 (** Specification of the whole compiler *)
 
 Theorem spec' x a (e : Env) s v : x ⇓[e] v ->
-                                ⟨compile x, a, convE e, s, empty⟩  =|> ⟨HALT , conv v , convE e, s, empty⟩.
+                                exists m, ⟨compile x, a, convE e, s, empty⟩  =|> ⟨HALT , conv v , convE e, s, m⟩.
 Proof.
   intros E.
+  edestruct (spec x v e); auto.
+  exists x0.
   begin
-    ⟨HALT , conv v , convE e, s, empty⟩.
-  <|= {apply spec; auto using empty_mem_free}
+    ⟨HALT , conv v , convE e, s, x0⟩.
+  <|= { apply H }
       ⟨comp x HALT, a, convE e, s, empty⟩.
   [].
 Qed.
