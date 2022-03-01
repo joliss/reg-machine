@@ -64,18 +64,6 @@ Ltac dist' ev :=
 Ltac dist := dist' eauto.
 
 
-Ltac solve_memle t :=
-  solve[
-      apply memle_set;
-      match goal with
-      | [H: freeFrom _ _ |- _] => apply H; t
-      (* | [H: exists v, empty_mem _ [_] =  v |- _ ] => apply empty_mem_free in H; contradiction; t *)
-      | _ => t
-      end
-      | t
-    ].
-
-
 Ltac check_exp x y := let h := fresh "check" in assert (h: x = y) by dist; clear h.
 
 Ltac check_rel Bidir Rel := first [check_exp Bidir Rel|

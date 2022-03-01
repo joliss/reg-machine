@@ -196,15 +196,7 @@ Qed .
 
 Module VM <: Machine.
 Definition Conf := Conf.
-Definition Pre := cle.
 Definition Rel := VM.
-Lemma monotone : monotonicity cle VM.
-  prove_monotonicity1.
-  all: try (match goal with [H : stackle (_ :: _) _ |- _] => inversion H end).
-  all: prove_monotonicity2.
-Qed.
-Lemma preorder : is_preorder cle.
-prove_preorder. Qed.
 End VM.
 
 

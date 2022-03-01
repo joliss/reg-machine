@@ -1,48 +1,9 @@
 Require Import Coq.Program.Equality.
 Require Export Memory.
 
-Definition is_preorder {Conf} (pre : Conf -> Conf -> Prop) : Prop
-  := (forall c, pre c c) /\ (forall c1 c2 c3, pre c1 c2 -> pre c2 c3 -> pre c1 c3).
-    
-
-Definition monotonicity {Conf}
-           (pre : Conf -> Conf -> Prop) (vm : Conf -> Conf -> Prop) :
-     Prop := forall (C1 C1' C2 : Conf),
-  pre C1 C1' ->
-  vm C1 C2 ->
-  exists C2', vm C1' C2' /\ pre C2 C2'.
-
-Ltac prove_preorder :=
-  split;[
-    intros c; destruct c;
-    repeat
-      (match goal with
-       | [H : _ * _ |- _] => destruct H
-       end);
-      eauto with memory
-  | intros c1 c2 c3 L1 L2; destruct c1, c2, c3;
-    inversion L1; inversion L2; subst;
-    repeat
-      (match goal with
-       | [H : (_, _) = (_, _) |- _] => inversion H; clear H
-       end); subst;
-    eauto with memory].
-
-Ltac prove_monotonicity1 :=
-  do 3 intro; intros Hle Step;
-  dependent destruction Step; inversion Hle.
-
-Ltac prove_monotonicity2 := subst;
-  eexists; (split; [try solve [econstructor; eauto with memory]| eauto with memory]).
-
-Ltac prove_monotonicity := prove_monotonicity1; prove_monotonicity2.
-
 Module Type Machine.
 Parameter Conf : Type.
-Parameter Pre : Conf -> Conf -> Prop.
 Parameter Rel : Conf -> Conf -> Prop.
-Parameter preorder : is_preorder Pre.
-Parameter monotone : monotonicity Pre Rel.
 End Machine.
 
 Require Import List.
@@ -88,39 +49,6 @@ forall c c0 : Conf, c =>> c0 -> P c c0.
 Proof. 
   intros X Y Z c1 c2 S. unfold trc in S. rewrite -> clos_rt_rt1n_iff in S.
   induction S; eauto. rewrite <- clos_rt_rt1n_iff in S. eauto.
-Qed.
-
-Infix "⊑" := Pre  (at level 70) : machine_scope.
-Notation "x ⊒ y" := (Pre y x) (at level 70) : machine_scope.
-
-Lemma cle_trans (C1 C2 C3 : Conf) : C1 ⊑ C2 -> C2 ⊑ C3 -> C1 ⊑ C3.
-Proof.
-  intros. pose preorder as P. unfold is_preorder in *. destruct P. eauto.
-Qed.
-Lemma cle_refl (C : Conf) : C ⊑ C.
-Proof.
-  intros. pose preorder as P. unfold is_preorder in *. destruct P. eauto.
-Qed.
-
-Hint Resolve cle_refl : core.
-
-Lemma monotone_step (C1 C1' C2 : Conf) :
-  C1 ⊑ C1' ->
-  C1 ==> C2 ->
-  exists C2', C1' ==> C2' /\ C2 ⊑ C2' .
-Proof.
-  intros. pose monotone as M. unfold monotonicity in M. eauto.
-Qed. 
-
-Lemma monotone_machine (C1 C1' C2 : Conf) :
-  C1 ⊑ C1' ->
-  C1 =>> C2 ->
-  exists C2', C1' =>> C2' /\ C2 ⊑ C2' .
-Proof.
-  intros I M. generalize dependent C1'. dependent induction M using trc_ind';intros.
-  - exists C1'. split; eauto.
-  - eapply monotone_step in I; eauto. destruct I as [m2' HS]. destruct HS as [S Ic'].
-    apply IHM in Ic'. destruct Ic'. destruct H0. eexists. split. eapply trc_step_trans'; eassumption. assumption.
 Qed.
 
 Definition determ {A} (R : A -> A -> Prop) : Prop := forall C C1 C2, R C C1 -> R C C2 -> C1 = C2.
