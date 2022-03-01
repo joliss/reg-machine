@@ -243,8 +243,6 @@ Proof.
   edestruct IHE1, IHE2.
 
   begin
-    ⟨c, NUM (n + n'), convE e, s, empty⟩.
-  ⊑ { auto with memory }
     ⟨c, NUM (n + n'), convE e, s, empty[first:=NUM n]⟩ .
   <== { apply vm_add }
     ⟨ADD first c, NUM n', convE e, s, empty[first:=NUM n]⟩ .
@@ -308,15 +306,13 @@ Proof.
   edestruct IHE1, IHE2, IHE3.
 
   begin
-    ⟨c, conv x'', convE e, s, empty ⟩.
+    ⟨c, conv x'', convE e, s, empty[first:=CLO (comp x' RET) (convE e')] ⟩.
   <== { apply vm_ret }
-    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty) :: s, x2⟩.
+    ⟨RET, conv x'', convE (y' :: e'), (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, x2⟩.
   <|= {apply H1}
-      ⟨comp x' RET, conv y', convE (y' :: e'), (CLO c (convE e), empty) :: s, empty⟩.
+      ⟨comp x' RET, conv y', convE (y' :: e'), (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
   = {auto}
-      ⟨comp x' RET, conv y', conv y' :: convE e', (CLO c (convE e), empty) :: s, empty⟩.
-  ⊑ {auto with memory}
-    ⟨comp x' RET, conv y', conv y' :: convE e', (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
+      ⟨comp x' RET, conv y', conv y' :: convE e', (CLO c (convE e), empty[first:=CLO (comp x' RET) (convE e')]) :: s, empty⟩.
   <== {apply vm_call}
     ⟨(APP first c), conv y', convE e, s, empty[first:=CLO (comp x' RET) (convE e')]⟩.
   <== { apply vm_ret_block }
