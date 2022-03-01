@@ -1,20 +1,7 @@
--R . Comp
+-R . ""
 Memory.v
-LinearMemory.v
 Machine.v
 Tactics.v
 ListIndex.v
 
-Arith.v
-Exception.v
 Lambda.v
-
-ExceptionPartial.v
-ExceptionTwo.v
-State.v
-LocalState.v
-LambdaTruncate.v
-LambdaBad.v
-LambdaException.v
-While.v
-WhileCoalesced.v

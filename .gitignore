@@ -8,3 +8,4 @@
 *.vok
 *.vos
 *.glob
+/coq/.Makefile.d
